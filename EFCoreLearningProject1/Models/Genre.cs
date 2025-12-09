@@ -12,6 +12,8 @@ namespace EFCoreLearningProject1.Models
         // Default to empty string to avoid null reference issues
         public string Name { get; set; } = string.Empty;
 
+        public string? Description { get; set; }
+
         // Navigation property for related books - defines one-to-many relationship
         // A genre can have multiple books. "ICollection<Book>" is interface, "List<Book> is the implementation.
         public ICollection<Book> Books { get; set; } = new List<Book>();
