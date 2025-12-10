@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using EFCoreLearningProject1.Models;
 using Microsoft.VisualBasic;
+using System.Globalization;
 namespace EFCoreLearningProject1.Services
 {
     // Service class that handles all database operations related to Books
@@ -146,6 +147,262 @@ namespace EFCoreLearningProject1.Services
         }
         #endregion
         #region Advanced Queries
+        // Query books within a price range 
+        public async Task<List<Book>> GetBookByPriceRangeAsync (decimal minPrice, decimal maxPrice)
+        {
+            return await _context.Books
+                // WHERE price between min and max
+                .Where (b => b.Price >= minPrice && b.Price <= maxPrice)
+                .Include (b => b.Author)
+                // ORDER BY price ascending 
+                .OrderBy (b => b.Price)
+                .ToListAsync();
+        }
+
+        // Query books by publication year
+        public async Task<List<Book>> GetBookByPublicationYearAsync (int year)
+        {
+            return await _context.Books
+                .Where (b => b.PublicationYear == year)
+                .Include (b => b.Author)
+                .Include (b => b.Genre)
+                .OrderBy (b => b.Title)
+                .ToListAsync();
+        }
+
+        // Get books by Gerne name
+        public async Task<List<Book>> GetBooksByGenreAsync (string genreName)
+        {
+            return await _context.Books
+                // Join Genres table to filter by genre name
+                .Where (b => b.Genre.Name.ToLower() == genreName.ToLower())
+                .Include (b => b.Genre)
+                .Include (b => b.Author)
+                .OrderBy (b => b.Title)
+                .ToListAsync();
+        }
+        // Get books published after a specific year
+        public async Task<List<Book>> GetBooksPublishedAfterAsync (int year)
+        {
+            return await _context.Books
+                .Where (b => b.PublicationYear > year)
+                .Include (b => b.Author)    
+                .OrderByDescending (b => b.PublicationYear)
+                .ToListAsync();
+        }
+        #endregion
+        #region Aggregate Queries
+        // Get statistics about the library
+        public async Task<Object> GetLibraryStatisticsAsync()
+        {
+            // Count all books - CountAsync execute SELECT COUNT(*) FROM Books
+           var totalBoooks = await _context.Books.CountAsync();
+
+            // Count all authors
+            var totalAuthors = await _context.Authors.CountAsync();
+
+            // Count all genres
+            var totalGenres = await _context.Genres.CountAsync();
+
+            // Calculate average book price
+            // AverageAsync generates SELECT AVG(Price) FROM Books
+            var averagePrice = await _context.Books.AverageAsync(b => b.Price);
+
+            // Find most expensive book
+            var mostExpensiveBook = await _context.Books
+                .Include(b => b.Author)
+                .OrderByDescending(b => b.Price)  //Sort by price high to low
+                .FirstOrDefaultAsync();     // Take the first one
+
+            // Find cheapest book
+            var cheapestBook = await _context.Books
+                .Include(b => b.Author)
+                .OrderBy(b => b.Price)  // Sort by price low to high
+                .FirstOrDefaultAsync(); // Take the first one
+
+            // Count available books vs unavailable books 
+            var availableBooks = await _context.Books.CountAsync(b => b.IsAvailable);
+            var unavailableBooks = totalBoooks - availableBooks;
+
+
+            // Group books by publication year 
+            var booksByYear = await _context.Books
+                .GroupBy(b => b.PublicationYear) // Group by year
+                .Select(g => new        // Project each group
+                {
+                    Year = g.Key,
+                    count = g.Count(),
+                    AveragePrice = g.Average(b => b.Price)
+                })
+                .OrderByDescending(g => g.Year) // Newest year first
+                .ToListAsync();
+
+            // Group books by genre
+            var booksByGenre = await _context.Genres
+                .Select(g => new
+                {
+                    GenreName = g.Name,
+                    BooksCount = g.Books.Count,
+                    AveragePrice = g.Books.Average(b => b.Price)
+                })
+                .OrderByDescending(g => g.BooksCount)
+                .ToListAsync();
+            // Return anonymous object with all statistics
+            return new
+            {
+                TotalBooks = totalBoooks,
+                TotalAuthors = totalAuthors,
+                TotalGenres = totalGenres,
+                AvarageBookPrice = averagePrice,
+                UnavailableBooks = unavailableBooks,
+                AveragePrice = Math.Round(averagePrice, 2), // Round to 2 decimal places
+                mostExpensiveBook = mostExpensiveBook?.DisplayInfo ?? "No books found",
+                CheapestBook = cheapestBook?.DisplayInfo ?? "No books found",
+                BooksByYear = booksByYear,
+                BooksByGenre = booksByGenre
+            };
+        }
+        // Get total value of all books in library
+        public async Task<decimal> GetTotalLibraryValueAsync()
+        {
+            // Sum all book prices
+            return await _context.Books.SumAsync(b => b.Price);
+        }
+        #endregion
+        #region Raw SQL Queries
+        // Example of raw SQL Query (When LINQ isn't enough)
+        public async Task<List<Book>> GetBooksUsingRawSqlAsync(string searchTerm)
+        {
+            // Use FromSqlRaw to execute custom SQL query
+            // {0} is parameter placeholder to prevent SQL injection
+            return await _context.Books
+                .FromSqlRaw("SELECT * FROM Books WHERE Title LIKE {0}", $"%{searchTerm}%")
+
+                // Can still chain LINQ methods after raw SQL
+                .Include(b => b.Author)
+                .OrderBy(b => b.Title)
+                .ToListAsync();
+        }
+
+        // Raw SQl for complex joins 
+        public async Task<List<Book>> GetBooksByAuthorCountryAsync (String country)
+        {
+            return await  _context.Books
+                .FromSqlRaw(@"
+                      SELECT b.*
+                      FROM Books b
+                      INNER JOIN Authors a ON b.AuthorId = a.Id
+                      WHERE a.Country = {0}", country)
+                .Include (b => b.Author)
+                .Include (b => b.Genre)
+                .ToListAsync();
+        }
+        #endregion
+        #region Transaction Examples 
+        // Transfer book to new author (transaction ensures operations succeed or fail together)
+        public async Task<bool> TransferBookToNewAuthorAsync(int bookId, int newAuthorId)
+        {
+            // Begin transaction - all operations will be atomic
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Find the book
+                var book = await _context.Books.FindAsync(bookId);
+                if (book == null)
+                    return false; // Book not found
+
+                // Find the new author
+                var newAuthor = await _context.Authors.FindAsync(newAuthorId);
+                if (newAuthor == null)
+                    return false; // Author not found
+
+                // Update book's author
+                book.AuthorId = newAuthorId;
+
+                // Optional : Add audit log 
+                // await AddAuditLogAsync ($"Book {bookId} transferred to author {newAuthorId}"); 
+
+                // Save changes
+                await _context.SaveChangesAsync();
+
+                // Commit transaction - all changes are saved
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch (Exception ex) 
+            {
+                // Rollback transaction - undo all changes
+                await transaction.RollbackAsync();
+
+                // log error 
+                Console.WriteLine($"Error transferring book: {ex.Message}");
+
+                return false;
+            }
+        }
+
+        // Bulk update prices with transaction 
+        public async Task<bool> ApplyDiscountToGenreAsync (int genreId, decimal discountPercent)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Get all books in the genre
+                var books = await _context.Books
+                    .Where (b => b.GenreId == genreId)
+                    .ToListAsync();
+
+                // Apply discount to each book
+                foreach (var book in books)
+                {
+                    book.Price *= (1 - discountPercent / 100); // Reduce price by discount percent%
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+        #endregion
+        #region Bulk Operations
+        // Add multiple books at once 
+        public async Task<int> AddBooksBulkAsync (List<Book> books)
+        {
+            // Add all books to _context
+            _context.Books.AddRange(books);
+
+            // Save once for all books (more efficient than saving individually)
+            return await _context.SaveChangesAsync();
+        }
+        // Delete multipe books by IDs 
+        public async Task<int> DeleteBooksBulkAsync(List<int> bookIds)
+        {
+            // Find all books with IDs in the list 
+            var booksToDelete = await _context.Books
+               .Where(b => bookIds.Contains(b.Id))
+               .ToListAsync();
+            // Remove all found books
+            _context.Books.RemoveRange(booksToDelete);
+
+            // Save changes 
+            return await _context.SaveChangesAsync();
+        }
+
+        #endregion
+        #region Validation and business logic 
+        // Check if ISBN already exists
+        public async Task<bool> IsIsbnUniqueAsync (string isbn, int? excludeBookId = null)
+        {
+            // Query to check if ISBN exits 
+            var query = _context.Books.AsQueryable(); 
+        }
         #endregion
     }
 }
