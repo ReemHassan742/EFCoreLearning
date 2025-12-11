@@ -401,8 +401,96 @@ namespace EFCoreLearningProject1.Services
         public async Task<bool> IsIsbnUniqueAsync (string isbn, int? excludeBookId = null)
         {
             // Query to check if ISBN exits 
-            var query = _context.Books.AsQueryable(); 
+            var query = _context.Books.Where(b => b.ISBN == isbn);
+
+            // If excludeBookId provided, exclude that book (For updates)
+            if (excludeBookId.HasValue)
+            {
+                query = query.Where(b => b.Id != excludeBookId.Value);
+
+            }
+            // AnyAsync returns true if any records match the query
+            return !await query.AnyAsync();
         }
+
+        // Validate book before adding/ updating
+        public (bool IsValid, string ErrorMessage) ValidateBook(Book book)
+        {
+            // Check required fields
+            if (string.IsNullOrWhiteSpace(book.Title))
+                return (false, "Title is required.");
+            if (string.IsNullOrWhiteSpace(book.ISBN))
+                return (false, "ISBN is required.");
+            if (book.PublicationYear < 1000 || book.PublicationYear > DateTime.Now.Year + 1)
+                return (false, "Publication year is invalid.");
+            if (book.Price < 0)
+                return (false, "Price cannot be negative.");
+
+            return (true, string.Empty);
+
+        }
+        #endregion
+        #region Pagination Example
+        //Pagination allows you to retrieve a large number of records split into pages, instead of returning all the results at once. 
+        // This is especially useful in scenarios where you need to retrieve a large number of records.
+
+        // Get books with pagination 
+        public async Task<(List<Book> Books, int TotalCount, int TotalPages)> 
+            GetBooksPaginatedAsync(int pageNumber, int pageSize, string sortBy = "Title")
+        {
+            // Start with base query 
+            var query = _context.Books
+                .Include(b => b.Author)
+                .Include(b => b.Genre)
+                .AsQueryable(); // Keep as IQueryable for further filtering
+
+            // Get total count for pagination info 
+            int totalCount = await query.CountAsync();
+
+            // Calculate total pages
+            int totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+
+            // Apply sorting 
+            query = sortBy.ToLower() switch
+            {
+                "title" => query.OrderBy(b => b.Title),
+                "price" => query.OrderBy(b => b.Price),
+                "year" => query.OrderByDescending(b => b.PublicationYear),
+                "author" => query.OrderBy(b => b.Author.LastName).ThenBy(b => b.Author.FirstName),
+                _ => query.OrderBy(b => b.Title), // Default sort by Title
+            };
+
+            // Apply pagination
+            var books = await query 
+                .Skip((pageNumber - 1) * pageSize) // Skip previous pages
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (books , totalCount, totalPages);
+        }
+
+        #endregion
+        #region Chaching 
+        // Simple caching of expensive query results
+        private List<Book> _cachedBooks;
+        private DateTime _cacheLastUpdated = DateTime.MinValue;
+
+        public async Task<List<Book>> GetBooksWithCachingAsync()
+        {
+            // If cache is fresh (less then 5 minutes old), return cached data
+            if (_cachedBooks != null &&
+                DateTime.Now.Subtract(_cacheLastUpdated).TotalMinutes < 5)
+            {
+                return _cachedBooks;
+
+            }
+            // Otherwise, query database
+            _cachedBooks = await GetAllBookAsync();
+            _cacheLastUpdated = DateTime.Now;
+
+            return _cachedBooks;
+        }
+
         #endregion
     }
 }
