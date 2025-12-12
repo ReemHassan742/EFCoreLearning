@@ -78,9 +78,9 @@ namespace EFCoreLearningProject1.Models
 
             // Seed Authors table
             modelBuilder.Entity<Author>().HasData(
-                new Author { Id = 1, FirstName = "George", LastName = "Orwell", Biography = "English novelist and essayist.", BirthDate = new DateTime(1903, 6, 25), country = "United Kingdom" },
-                new Author { Id = 2, FirstName = "Isaac", LastName = "Asimov", Biography = "American science fiction writer and professor of biochemistry.", BirthDate = new DateTime(1920, 1, 2), country = "United States" },
-                new Author { Id = 3, FirstName = "Agatha", LastName = "Christie", Biography = "English writer known for her detective novels.", BirthDate = new DateTime(1890, 9, 15), country = "United Kingdom" }
+                new Author { Id = 1, FirstName = "George", LastName = "Orwell", Biography = "English novelist and essayist.", BirthDate = new DateTime(1903, 6, 25), Country = "United Kingdom" },
+                new Author { Id = 2, FirstName = "Isaac", LastName = "Asimov", Biography = "American science fiction writer and professor of biochemistry.", BirthDate = new DateTime(1920, 1, 2), Country = "United States" },
+                new Author { Id = 3, FirstName = "Agatha", LastName = "Christie", Biography = "English writer known for her detective novels.", BirthDate = new DateTime(1890, 9, 15), Country = "United Kingdom" }
                 );
 
             // Seed Books table (note foreign keys AuthorId and GenreId)

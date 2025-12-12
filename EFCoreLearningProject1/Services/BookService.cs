@@ -196,7 +196,7 @@ namespace EFCoreLearningProject1.Services
         public async Task<Object> GetLibraryStatisticsAsync()
         {
             // Count all books - CountAsync execute SELECT COUNT(*) FROM Books
-           var totalBoooks = await _context.Books.CountAsync();
+           var totalBooks = await _context.Books.CountAsync();
 
             // Count all authors
             var totalAuthors = await _context.Authors.CountAsync();
@@ -222,7 +222,7 @@ namespace EFCoreLearningProject1.Services
 
             // Count available books vs unavailable books 
             var availableBooks = await _context.Books.CountAsync(b => b.IsAvailable);
-            var unavailableBooks = totalBoooks - availableBooks;
+            var unavailableBooks = totalBooks - availableBooks;
 
 
             // Group books by publication year 
@@ -250,13 +250,13 @@ namespace EFCoreLearningProject1.Services
             // Return anonymous object with all statistics
             return new
             {
-                TotalBooks = totalBoooks,
+                TotalBooks = totalBooks,
                 TotalAuthors = totalAuthors,
                 TotalGenres = totalGenres,
-                AvarageBookPrice = averagePrice,
+                AvailableBooks = availableBooks,
                 UnavailableBooks = unavailableBooks,
-                AveragePrice = Math.Round(averagePrice, 2), // Round to 2 decimal places
-                mostExpensiveBook = mostExpensiveBook?.DisplayInfo ?? "No books found",
+                AverageBookPrice = Math.Round(averagePrice, 2),
+                MostExpensiveBook = mostExpensiveBook?.DisplayInfo ?? "No books found",
                 CheapestBook = cheapestBook?.DisplayInfo ?? "No books found",
                 BooksByYear = booksByYear,
                 BooksByGenre = booksByGenre
@@ -448,7 +448,7 @@ namespace EFCoreLearningProject1.Services
             int totalCount = await query.CountAsync();
 
             // Calculate total pages
-            int totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+            int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
             // Apply sorting 
             query = sortBy.ToLower() switch
@@ -471,6 +471,8 @@ namespace EFCoreLearningProject1.Services
 
         #endregion
         #region Chaching 
+        //we can say that cache is a place where we store information to retrieve it in a very fast and efficient way.
+        // Imagine you have an application with many users, all making the same query. Do we really want to hit the database every single time? Of course not. This is where cache comes into play.
         // Simple caching of expensive query results
         private List<Book> _cachedBooks;
         private DateTime _cacheLastUpdated = DateTime.MinValue;

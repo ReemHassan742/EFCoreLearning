@@ -18,7 +18,7 @@ namespace EFCoreLearningProject1.Models
         public string? Biography { get; set; }
 
         public DateTime? BirthDate { get; set; }
-        public string? country { get; set; }
+        public string? Country { get; set; }
 
         //Navigation property : One Author can have multiple Books.
         public ICollection<Book> Books { get; set; } = new List<Book>();
