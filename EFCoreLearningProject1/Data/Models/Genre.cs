@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EFCoreLearningProject1.Models
+namespace EFCoreLearningProject1.Data.Models
 {
     public class Genre
     {

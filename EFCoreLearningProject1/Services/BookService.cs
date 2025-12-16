@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using EFCoreLearningProject1.Models;
 using Microsoft.VisualBasic;
 using System.Globalization;
+using EFCoreLearningProject1.Data.Models;
 namespace EFCoreLearningProject1.Services
 {
     // Service class that handles all database operations related to Books

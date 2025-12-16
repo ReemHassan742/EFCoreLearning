@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EFCoreLearningProject1.Models
+namespace EFCoreLearningProject1.Data.Models
 {
     public class Book
     {
@@ -36,6 +36,6 @@ namespace EFCoreLearningProject1.Models
         // Computed property - display formatted book info.
         // "?." is null-conditional operator (safe if Author is null).
         //"??" is null-coalescing operator (use "Unkown" if left side is null).
-        public String DisplayInfo => $"{Title} by {Author?.FullName ?? "Unknown"} ({PublicationYear})";
+        public string DisplayInfo => $"{Title} by {Author?.FullName ?? "Unknown"} ({PublicationYear})";
     }
 }

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using EFCoreLearningProject1.Models;
+using Microsoft.Extensions.Logging;
 
-namespace EFCoreLearningProject1.Models
+namespace EFCoreLearningProject1.Data.Models
 {
     // DbContext is the main class that coordinates EF Core functionality
     // Think of it as a bridge between your code and the database
@@ -26,7 +26,7 @@ namespace EFCoreLearningProject1.Models
         {
             // Configure to use SQLite database with file "Library.db"
             // SQLite is a lightweight, file-based database
-            optionsBuilder.UseSqlite("Data Source=Library.db");
+            optionsBuilder.UseSqlite("Data Source=library.db");
 
             //shows parameters values in logs for debugging
             // We don't do this in production for security reasons
@@ -34,7 +34,7 @@ namespace EFCoreLearningProject1.Models
 
             //logs all EF Core operations to the console
             // Helps you see what SQL is being generated and executed.
-            optionsBuilder.LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Information);
+            optionsBuilder.LogTo(Console.WriteLine, LogLevel.Information);
 
         }
 

@@ -1,4 +1,4 @@
-﻿using EFCoreLearningProject1.Models;
+﻿using EFCoreLearningProject1.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;

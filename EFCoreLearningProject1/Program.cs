@@ -1,5 +1,5 @@
 ﻿using EFCoreLearningProject.Services;
-using EFCoreLearningProject1.Models;
+using EFCoreLearningProject1.Data.Models;
 using EFCoreLearningProject1.Services;
 using Microsoft.EntityFrameworkCore;
 

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace EFCoreLearningProject1.Models
+namespace EFCoreLearningProject1.Data.Models
 {
     public class Author
     {
